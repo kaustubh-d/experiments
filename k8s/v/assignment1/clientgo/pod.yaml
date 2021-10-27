@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-clientgo
+spec:
+  containers:
+  - name: sample-clientgo
+    image: kaustubhd/clientgosample:latest
