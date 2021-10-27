@@ -22,7 +22,9 @@ func main() {
 	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 	// Default cli option is no config, so in-cluster.
 	var listOp, createOp, deleteOp, updateOp bool
+	var ns string
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "kubeconfig file")
+	flag.StringVar(&ns, "namespace", "default", "namespace to operate on")
 	flag.BoolVar(&listOp, "list", false, "Perform only list operations.")
 	flag.BoolVar(&createOp, "create", false, "Perform only create operations.")
 	flag.BoolVar(&updateOp, "update", false, "Perform only update operations.")
@@ -56,21 +58,20 @@ func main() {
 		panic(err.Error())
 	}
 	if listOp {
-		// podsops.ListAll(clientset, "default")
-		deploymentops.ListAll(clientset, "rgb")
-		podsops.ListAll(clientset, "rgb")
+		deploymentops.ListAll(clientset, ns)
+		podsops.ListAll(clientset, ns)
 	}
 
 	if createOp {
-		deploymentops.Create(clientset, "rgb", "kd-nginx-rgb", "nginx:1.14.2", 3, "app", "rgb")
+		deploymentops.Create(clientset, ns, "kd-nginx-rgb", "nginx:1.14.2", 3, "app", "rgb")
 	}
 
 	// Lets color the pods in this deployment.
 	if updateOp {
-		podsops.UpdateRGB(clientset, "rgb", "app=rgb")
+		podsops.UpdateRGB(clientset, ns, "app=rgb")
 	}
 
 	if deleteOp {
-		deploymentops.Delete(clientset, "rgb", "kd-nginx-rgb")
+		deploymentops.Delete(clientset, ns, "kd-nginx-rgb")
 	}
 }

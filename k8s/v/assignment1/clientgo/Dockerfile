@@ -3,11 +3,11 @@ WORKDIR /app
 COPY . .
 
 RUN go build && \
-    chmod 777 clntgo run.sh
+    chmod 777 clntgo scripts/incluster-run.sh
 
 FROM alpine:latest
 WORKDIR /root/
 COPY --from=builder /app/clntgo /usr/bin/example-clientgo
-COPY --from=builder /app/run.sh /usr/bin/example-run.sh
+COPY --from=builder /app/scripts/incluster-run.sh /usr/bin/example-run.sh
 
 ENTRYPOINT ["/usr/bin/example-run.sh"]
