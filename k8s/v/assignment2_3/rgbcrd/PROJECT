@@ -1,0 +1,6 @@
+domain: kb.example.com
+layout:
+- go.kubebuilder.io/v3
+projectName: rgbcrd
+repo: kb.example.com/rgbcrd
+version: "3"
