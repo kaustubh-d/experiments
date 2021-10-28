@@ -1,0 +1,12 @@
+apiVersion: kd.kb.example.com/v1
+kind: RGBResourceManager
+metadata:
+  name: rgb-blue-pods
+spec:
+  # Add fields here
+  color: Blue
+  group: core
+  version: v1
+  kind: Pod
+  count: 3
+
