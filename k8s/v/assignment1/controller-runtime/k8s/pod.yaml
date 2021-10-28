@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-controllerruntime-app
+spec:
+  containers:
+  - name: sample-controllerruntime-app
+    image: kaustubhd/controllerruntimeapp:latest
+    # imagePullPolicy: IfNotPresent
