@@ -19,10 +19,10 @@ package controllers
 import (
 	"context"
 	"errors"
-	"strconv"
 
+	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	appsv1 "k8s.io/api/apps/v1"
-	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,7 +85,7 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 
 		count := len(childPods.Items)
-		log.Info("Reconciling RGB", "Pods", count)
+		log.Info("Reconciling RGB", "Kind", "Pod", "Count", count)
 
 		if count == int(rgb_resource.Spec.Count) {
 			// Final state achieved, mark rgb as ready
@@ -96,14 +96,41 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 		// Reconcile to ensure spec
 		if count == int(rgb_resource.Spec.Count) {
 			// Final state achieved, mark rgb as ready
-			rgb_resource.Status.Result = kdv1.RGBStatus(kdv1.RGBReady)
-			return ctrl.Result{}, nil
+			return r.markRGBReady(ctx, log, &rgb_resource)
 		} else if count < int(rgb_resource.Spec.Count) {
+			// Total Pods less then expected, create
 			newCntToCreate := int(rgb_resource.Spec.Count) - count
-			log.Info("Reconciling RGB", "operation", "create", "Pods", newCntToCreate)
+			log.Info("Reconciling RGB", "operation", "create-pod", "count", newCntToCreate)
+			for i := 0; i < newCntToCreate; i++ {
+
+				name := rgb_resource.Name + "-" + uuid.New().String()
+				d := createPodObj("default", name, "app", "rgb")
+				d.Labels["color"] = string(rgb_resource.Spec.Color)
+				// Set owner reference
+				if err := ctrl.SetControllerReference(&rgb_resource, d, r.Scheme); err != nil {
+					return ctrl.Result{}, err
+				}
+				log.Info("Reconciling RGB", "operation", "create-pod", "Name", name)
+				err = r.Create(ctx, d, &client.CreateOptions{})
+				if err != nil {
+					// Requeue
+					log.Info("Reconciling RGB", "operation", "create-pod", "Failed", name)
+					return ctrl.Result{}, err
+				}
+				log.Info("Reconciling RGB", "operation", "create-pod", "Success", name)
+			}
 		} else {
 			newCntToDelete := int(rgb_resource.Spec.Count) - count
-			log.Info("Reconciling RGB", "operation", "delete", "Pods", newCntToDelete)
+			log.Info("Reconciling RGB", "operation", "delete-pod", "count", newCntToDelete)
+			for i := 0; i < newCntToDelete; i++ {
+				log.Info("Reconciling RGB", "operation", "delete-pod", "Name", childPods.Items[i].Name)
+				err = r.Delete(ctx, &childPods.Items[i], &client.DeleteOptions{})
+				if err != nil {
+					log.Info("Reconciling RGB", "operation", "delete-pod", "Failed", childPods.Items[i].Name)
+					return ctrl.Result{}, err
+				}
+				log.Info("Reconciling RGB", "operation", "delete-pod", "Success", childPods.Items[i].Name)
+			}
 		}
 
 	} else if rgb_resource.Spec.Kind == kdv1.RGBSupportedKind(kdv1.DeploymentRc) {
@@ -123,38 +150,42 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if count == int(rgb_resource.Spec.Count) {
 			log.Info("Reconciling RGB", "operation", "update", "rgb-Status", "Ready")
 			// Final state achieved, mark rgb as ready
-			rgb_resource.Status.Result = kdv1.RGBStatus(kdv1.RGBReady)
-			err = r.Status().Update(ctx, &rgb_resource)
-			if err != nil {
-				log.Info("Reconciling RGB", "operation", "update", "rgb", "Failed")
-				return ctrl.Result{}, err
-			}
-			log.Info("Reconciling RGB", "operation", "Updated", "rgb-Status", "Ready")
-			return ctrl.Result{}, nil
+			return r.markRGBReady(ctx, log, &rgb_resource)
 		} else if count < int(rgb_resource.Spec.Count) {
+			// Total Deployments less then expected, create
 			newCntToCreate := int(rgb_resource.Spec.Count) - count
-			log.Info("Reconciling RGB", "operation", "create", "Deployments", newCntToCreate)
+			log.Info("Reconciling RGB", "operation", "create-deployment", "count", newCntToCreate)
 			for i := 0; i < newCntToCreate; i++ {
 
-				name := rgb_resource.Name + "-" + strconv.Itoa(i)
+				name := rgb_resource.Name + "-" + uuid.New().String()
 				d := createDeploymentObj("default", name, 1, "app", "rgb")
 				d.Labels["color"] = string(rgb_resource.Spec.Color)
 				// Set owner reference
 				if err := ctrl.SetControllerReference(&rgb_resource, d, r.Scheme); err != nil {
 					return ctrl.Result{}, err
 				}
-				log.Info("Reconciling RGB", "operation", "create", "Deployments", name)
+				log.Info("Reconciling RGB", "operation", "create-deployment", "Name", name)
 				err = r.Create(ctx, d, &client.CreateOptions{})
 				if err != nil {
 					// Requeue
-					log.Info("Reconciling RGB", "operation", "create", "Failed Deployment", name)
+					log.Info("Reconciling RGB", "operation", "create-deployment", "Failed", name)
 					return ctrl.Result{}, err
 				}
+				log.Info("Reconciling RGB", "operation", "create-deployment", "Success", name)
 			}
 
 		} else {
 			newCntToDelete := int(rgb_resource.Spec.Count) - count
-			log.Info("Reconciling RGB", "operation", "delete", "Deployments", newCntToDelete)
+			log.Info("Reconciling RGB", "operation", "delete-deployment", "count", newCntToDelete)
+			for i := 0; i < newCntToDelete; i++ {
+				log.Info("Reconciling RGB", "operation", "delete-deployment", "Name", childDeployments.Items[i].Name)
+				err = r.Delete(ctx, &childDeployments.Items[i], &client.DeleteOptions{})
+				if err != nil {
+					log.Info("Reconciling RGB", "operation", "delete-deployment", "Failed", childDeployments.Items[i].Name)
+					return ctrl.Result{}, err
+				}
+				log.Info("Reconciling RGB", "operation", "delete-deployment", "Success", childDeployments.Items[i].Name)
+			}
 		}
 		// Reconcile to ensure spec
 	} else {
@@ -189,21 +220,21 @@ func createDeploymentObj(namespace string, name string, replicas int32, labelkey
 					labelkey: labelvalue,
 				},
 			},
-			Template: apiv1.PodTemplateSpec{
+			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						labelkey: labelvalue,
 					},
 				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:  name,
 							Image: "nginx",
-							Ports: []apiv1.ContainerPort{
+							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
-									Protocol:      apiv1.ProtocolTCP,
+									Protocol:      corev1.ProtocolTCP,
 									ContainerPort: 80,
 								},
 							},
@@ -214,4 +245,45 @@ func createDeploymentObj(namespace string, name string, replicas int32, labelkey
 		},
 	}
 	return deployment
+}
+
+func createPodObj(namespace string, name string, labelkey string, labelvalue string) *corev1.Pod {
+	deployment := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Labels: map[string]string{
+				labelkey: labelvalue,
+			},
+			Namespace: namespace,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  name,
+					Image: "nginx",
+					Ports: []corev1.ContainerPort{
+						{
+							Name:          "http",
+							Protocol:      corev1.ProtocolTCP,
+							ContainerPort: 80,
+						},
+					},
+				},
+			},
+		},
+	}
+	return deployment
+}
+
+func (r *RGBResourceManagerReconciler) markRGBReady(ctx context.Context, log logr.Logger, rgb_resource *kdv1.RGBResourceManager) (ctrl.Result, error) {
+	log.Info("Reconciling RGB", "operation", "update", "rgb-Status", "Ready")
+	// Final state achieved, mark rgb as ready
+	rgb_resource.Status.Result = kdv1.RGBStatus(kdv1.RGBReady)
+	err := r.Status().Update(ctx, rgb_resource)
+	if err != nil {
+		log.Info("Reconciling RGB", "operation", "update", "rgb", "Failed")
+		return ctrl.Result{}, err
+	}
+	log.Info("Reconciling RGB", "operation", "Updated", "rgb-Status", "Ready")
+	return ctrl.Result{}, nil
 }
