@@ -28,7 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	kdv1 "kb.example.com/rgbcrd/api/v1"
 )
@@ -37,6 +39,7 @@ import (
 type RGBResourceManagerReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
 //+kubebuilder:rbac:groups=kd.kb.example.com,resources=rgbresourcemanagers,verbs=get;list;watch;create;update;patch;delete
@@ -197,10 +200,56 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RGBResourceManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	log := r.Log.WithValues("function", "SetupWithManager")
+
+	createFunction := func(e event.CreateEvent) bool {
+		if e.Object == nil {
+			log.Error(nil, "Create event has no runtime object to create", "event", e)
+			return false
+		}
+		// For now do nothing, we can add more checks.
+		return true
+	}
+
+	deleteFunction := func(e event.DeleteEvent) bool {
+		// Skip delete event when a object has skip=delete label
+		if e.Object == nil {
+			log.Error(nil, "Delete event has no runtime object to delete", "event", e)
+			return false
+		}
+
+		depObj, ok := e.Object.(*appsv1.Deployment)
+		if ok && depObj.Labels["skip"] == "delete" {
+			// skip processing delete as marked.
+			log.Info("Reconcile", "Skipping delete event for Deployment", depObj.Name, "event", e)
+			return false
+		}
+		podObj, ok := e.Object.(*corev1.Pod)
+		if ok && podObj.Labels["skip"] == "delete" {
+			// skip processing delete as marked.
+			log.Info("Reconcile", "Skipping delete event for Pod", podObj.Name, "event", e)
+			return false
+		}
+
+		return true
+	}
+
+	updateFunction := func(e event.UpdateEvent) bool {
+		// For now do nothing, we can add checks.
+		return true
+	}
+
+	p := predicate.Funcs{
+		CreateFunc: createFunction,
+		DeleteFunc: deleteFunction,
+		UpdateFunc: updateFunction,
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kdv1.RGBResourceManager{}).
 		Owns(&corev1.Pod{}).
 		Owns(&appsv1.Deployment{}).
+		WithEventFilter(p).
 		Complete(r)
 }
 

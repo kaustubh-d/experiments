@@ -81,6 +81,7 @@ func main() {
 	if err = (&controllers.RGBResourceManagerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controllers").WithName("rgb"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "RGBResourceManager")
 		os.Exit(1)
