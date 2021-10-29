@@ -79,9 +79,12 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if rgb_resource.Spec.Kind == kdv1.RGBSupportedKind(kdv1.PodRc) {
 		// Managing PODs
 		var childPods corev1.PodList
-		if err := r.List(ctx, &childPods,
-			client.InNamespace(req.Namespace),
-			client.MatchingLabels(map[string]string{"app": "rgb"})); err != nil {
+		// err := r.List(ctx, &childPods,
+		// 	client.InNamespace(req.Namespace),
+		// 	client.MatchingLabels(map[string]string{"app": "rgb"}));
+		err := r.List(ctx, &childPods,
+			client.InNamespace(req.Namespace), client.MatchingFields{podOwnerKey: req.Name})
+		if err != nil {
 
 			log.Error(err, "unable to list child pods")
 			return ctrl.Result{}, err
@@ -89,12 +92,6 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		count := len(childPods.Items)
 		log.Info("Reconciling RGB", "Kind", "Pod", "Count", count)
-
-		if count == int(rgb_resource.Spec.Count) {
-			// Final state achieved, mark rgb as ready
-			rgb_resource.Status.Result = kdv1.RGBStatus(kdv1.RGBReady)
-			return ctrl.Result{}, nil
-		}
 
 		// Reconcile to ensure spec
 		if count == int(rgb_resource.Spec.Count) {
@@ -123,7 +120,7 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 				log.Info("Reconciling RGB", "operation", "create-pod", "Success", name)
 			}
 		} else {
-			newCntToDelete := int(rgb_resource.Spec.Count) - count
+			newCntToDelete := count - int(rgb_resource.Spec.Count)
 			log.Info("Reconciling RGB", "operation", "delete-pod", "count", newCntToDelete)
 			for i := 0; i < newCntToDelete; i++ {
 				log.Info("Reconciling RGB", "operation", "delete-pod", "Name", childPods.Items[i].Name)
@@ -151,7 +148,6 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 		log.Info("Reconciling RGB", "Deployments", count)
 
 		if count == int(rgb_resource.Spec.Count) {
-			log.Info("Reconciling RGB", "operation", "update", "rgb-Status", "Ready")
 			// Final state achieved, mark rgb as ready
 			return r.markRGBReady(ctx, log, &rgb_resource)
 		} else if count < int(rgb_resource.Spec.Count) {
@@ -178,7 +174,7 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 
 		} else {
-			newCntToDelete := int(rgb_resource.Spec.Count) - count
+			newCntToDelete := count - int(rgb_resource.Spec.Count)
 			log.Info("Reconciling RGB", "operation", "delete-deployment", "count", newCntToDelete)
 			for i := 0; i < newCntToDelete; i++ {
 				log.Info("Reconciling RGB", "operation", "delete-deployment", "Name", childDeployments.Items[i].Name)
@@ -198,10 +194,35 @@ func (r *RGBResourceManagerReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return ctrl.Result{}, nil
 }
 
+var (
+	podOwnerKey = ".metadata.controller"
+	apiGVStr    = kdv1.GroupVersion.String()
+)
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *RGBResourceManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	log := r.Log.WithValues("function", "SetupWithManager")
 
+	// Field Indexer for Pod
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Pod{}, podOwnerKey, func(rawObj client.Object) []string {
+		// grab the pod object, extract the owner...
+		pod := rawObj.(*corev1.Pod)
+		owner := metav1.GetControllerOf(pod)
+		if owner == nil {
+			return nil
+		}
+		// ...make sure it's a RGBResourceManager...
+		if owner.APIVersion != apiGVStr || owner.Kind != "RGBResourceManager" {
+			return nil
+		}
+		log.Info("Field Indexer", "Name", owner.Name, "Resource", pod.Name)
+		// ...and if so, return it
+		return []string{owner.Name}
+	}); err != nil {
+		return err
+	}
+
+	// Predicates example.
 	createFunction := func(e event.CreateEvent) bool {
 		if e.Object == nil {
 			log.Error(nil, "Create event has no runtime object to create", "event", e)
