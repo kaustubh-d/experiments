@@ -1,0 +1,24 @@
+# permissions for end users to edit rgbresourcemanagers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rgbresourcemanager-editor-role
+rules:
+- apiGroups:
+  - kd.kb.example.com
+  resources:
+  - rgbresourcemanagers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kd.kb.example.com
+  resources:
+  - rgbresourcemanagers/status
+  verbs:
+  - get
