@@ -36,10 +36,10 @@ setup_command() {
     echo ".config file created in $FOLDER_PATH."
 }
 
-# Function to handle pull command
-pull_command() {
+# Function to handle get command
+get_command() {
     if [[ $# -ne 2 ]]; then
-        echo "Usage: $0 pull <branch|tag|commit> <name>"
+        echo "Usage: $0 get <branch|tag|commit> <name>"
         exit 1
     fi
 
@@ -103,8 +103,8 @@ show_help() {
     echo "  setup <user name> <folder path for code> <git repo url>"
     echo "      Set up the environment by creating necessary configuration files."
     echo ""
-    echo "  pull <branch|tag|commit> <name>"
-    echo "      Pull the specified branch, tag, or commit from the repository."
+    echo "  get <branch|tag|commit> <name>"
+    echo "      get the specified branch, tag, or commit from the repository."
     echo ""
     echo "  version    Show the script version and exit"
     echo ""
@@ -131,8 +131,8 @@ case "$COMMAND" in
     setup)
         setup_command "$@"
         ;;
-    pull)
-        pull_command "$@"
+    get)
+        get_command "$@"
         ;;
     --help)
         show_help
