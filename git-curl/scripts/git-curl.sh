@@ -2,7 +2,7 @@
 
 # Script Name: git-curl.sh
 # Description: A script to demonstrate handling command-line arguments.
-
+set -e
 VERSION="1.0.0"
 
 # Function to securely read access token
@@ -82,7 +82,7 @@ pull_command() {
 
     # Download and extract the tar.gz
     echo "Downloading $DOWNLOAD_URL..."
-    curl -L -o code.tar.gz "$DOWNLOAD_URL"
+    curl -L -n -o code.tar.gz "$DOWNLOAD_URL"
     if [[ $? -ne 0 ]]; then
         echo "Failed to download $DOWNLOAD_URL."
         exit 1
