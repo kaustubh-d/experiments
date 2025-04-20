@@ -96,14 +96,20 @@ pull_command() {
     echo "Code extracted to source folder."
 }
 
-# Function to display help
 show_help() {
-    echo "Usage: $0 [OPTIONS]"
+    echo "Usage: $0 [COMMAND] [OPTIONS]"
+    echo ""
+    echo "Commands:"
+    echo "  setup <user name> <folder path for code> <git repo url>"
+    echo "      Set up the environment by creating necessary configuration files."
+    echo ""
+    echo "  pull <branch|tag|commit> <name>"
+    echo "      Pull the specified branch, tag, or commit from the repository."
+    echo ""
+    echo "  version    Show the script version and exit"
     echo ""
     echo "Options:"
     echo "  --help       Show this help message and exit"
-    echo "  --version    Show the script version and exit"
-    echo "  --example    Example placeholder functionality"
     echo ""
 }
 
@@ -112,35 +118,31 @@ show_version() {
     echo "$0 version $VERSION"
 }
 
-# Function for example functionality
-example_function() {
-    echo "This is an example functionality."
-}
-
 # Parse command-line arguments
 if [[ $# -eq 0 ]]; then
     echo "No arguments provided. Use --help for usage information."
     exit 1
 fi
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --help)
-            show_help
-            exit 0
-            ;;
-        --version)
-            show_version
-            exit 0
-            ;;
-        --example)
-            example_function
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Use --help for usage information."
-            exit 1
-            ;;
-    esac
-done
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+    setup)
+        setup_command "$@"
+        ;;
+    pull)
+        pull_command "$@"
+        ;;
+    --help)
+        show_help
+        ;;
+    version)
+        show_version
+        ;;
+    *)
+        echo "Unknown command: $COMMAND"
+        echo "Use --help for usage information."
+        exit 1
+        ;;
+esac
