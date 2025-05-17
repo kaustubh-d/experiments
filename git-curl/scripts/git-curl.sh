@@ -1,9 +1,46 @@
 #!/bin/bash
 
-# Script Name: git-curl.sh
-# Description: A script to demonstrate handling command-line arguments.
 set -e
 VERSION="1.0.0"
+
+if [[ -f ./git-curl-modified-files.sh ]]; then
+    source ./git-curl-modified-files.sh
+else
+    echo "Required file ./git-curl-modified-files.sh not found."
+    exit 1
+fi
+
+# Return the list of modified files between two dates or commits
+#   Parameters:
+#     $1: --fromdate (string)    - Option flag to specify the start date.
+#     $2: <date> (string)        - The start date (inclusive).
+#     $3: --todate (string)      - Option flag to specify the end date.
+#     $4: <date> (string)        - The end date (inclusive).
+#
+#   Parameters:
+#     $1: --fromcommit (string)  - Option flag to specify the start commit.
+#     $2: <commit sha> (string)  - The starting commit SHA.
+#     $3: --tocommit (string)    - Option flag to specify the end commit.
+#     $4: <commit sha> (string)  - The ending commit SHA.
+#
+list_files_command() {
+    local owner="kaustubh-d"
+    local repo="docs"
+    if [[ "$1" == "--fromdate" && "$3" == "--todate" && -n "$2" && -n "$4" ]]; then
+        FROM_DATE="$2"
+        TO_DATE="$4"
+        github_modified_files_by_date "$owner" "$repo" "$FROM_DATE" "$TO_DATE"
+    elif [[ "$1" == "--fromcommit" && "$3" == "--tocommit" && -n "$2" && -n "$4" ]]; then
+        FROM_COMMIT="$2"
+        TO_COMMIT="$4"
+        github_modified_files_by_sha "$owner" "$repo" "$FROM_COMMIT" "$TO_COMMIT"
+    else
+        echo "Usage:"
+        echo "  $0 list-files --fromdate <date> --todate <date>"
+        echo "  $0 list-files --fromcommit <commit sha> --tocommit <commit sha>"
+        exit 1
+    fi
+}
 
 # Function to securely read access token
 read_access_token() {
@@ -104,7 +141,13 @@ show_help() {
     echo "      Set up the environment by creating necessary configuration files."
     echo ""
     echo "  get <branch|tag|commit> <name>"
-    echo "      get the specified branch, tag, or commit from the repository."
+    echo "      Get the specified branch, tag, or commit from the repository."
+    echo ""
+    echo "  list-files --fromdate <date> --todate <date>"
+    echo "      List files modified between the specified dates (inclusive)."
+    echo ""
+    echo "  list-files --fromcommit <commit sha> --tocommit <commit sha>"
+    echo "      List files modified between the specified commits (inclusive)."
     echo ""
     echo "  version    Show the script version and exit"
     echo ""
@@ -133,6 +176,9 @@ case "$COMMAND" in
         ;;
     get)
         get_command "$@"
+        ;;
+    list-files)
+        list_files_command "$@"
         ;;
     --help)
         show_help
