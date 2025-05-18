@@ -2,6 +2,7 @@
 
 set -e
 VERSION="1.0.0"
+GITHUB_HOST="github.com"
 
 if [[ -f ./git-curl-modified-files.sh ]]; then
     source ./git-curl-modified-files.sh
@@ -12,33 +13,45 @@ fi
 
 # Return the list of modified files between two dates or commits
 #   Parameters:
-#     $1: --fromdate (string)    - Option flag to specify the start date.
-#     $2: <date> (string)        - The start date (inclusive).
-#     $3: --todate (string)      - Option flag to specify the end date.
-#     $4: <date> (string)        - The end date (inclusive).
+#     $1: --branch (string)      - Option flag to specify the branch.
+#     $2: <branch name> (string) - The branch name.
+#     $3: --fromdate (string)    - Option flag to specify the start date.
+#     $4: <date> (string)        - The start date (inclusive).
+#     $5: --todate (string)      - Option flag to specify the end date.
+#     $6: <date> (string)        - The end date (inclusive).
 #
 #   Parameters:
-#     $1: --fromcommit (string)  - Option flag to specify the start commit.
-#     $2: <commit sha> (string)  - The starting commit SHA.
-#     $3: --tocommit (string)    - Option flag to specify the end commit.
-#     $4: <commit sha> (string)  - The ending commit SHA.
+#     $1: --branch (string)      - Option flag to specify the branch.
+#     $2: <branch name> (string) - The branch name.
+#     $3: --fromcommit (string)  - Option flag to specify the start commit.
+#     $4: <commit sha> (string)  - The starting commit SHA.
+#     $5: --tocommit (string)    - Option flag to specify the end commit.
+#     $6: <commit sha> (string)  - The ending commit SHA.
 #
-list_files_command() {
-    local owner="kaustubh-d"
-    local repo="docs"
-    if [[ "$1" == "--fromdate" && "$3" == "--todate" && -n "$2" && -n "$4" ]]; then
-        FROM_DATE="$2"
-        TO_DATE="$4"
-        github_modified_files_by_date "$owner" "$repo" "$FROM_DATE" "$TO_DATE"
-    elif [[ "$1" == "--fromcommit" && "$3" == "--tocommit" && -n "$2" && -n "$4" ]]; then
-        FROM_COMMIT="$2"
-        TO_COMMIT="$4"
-        github_modified_files_by_sha "$owner" "$repo" "$FROM_COMMIT" "$TO_COMMIT"
-    else
-        echo "Usage:"
-        echo "  $0 list-files --fromdate <date> --todate <date>"
-        echo "  $0 list-files --fromcommit <commit sha> --tocommit <commit sha>"
+show_list_files_help() {
+    echo "list_files_command params missing: "
+        echo "--branch <branch> --fromdate <date> --todate <date>"
+        echo "--branch <branch> --fromcommit <commit sha> --tocommit <commit sha>"
         exit 1
+}
+list_files_command() {
+    if [[ $# -ne 6 ]]; then
+        show_list_files_help
+    fi
+    if [[ "$1" == "--branch" && "$3" == "--fromdate" &&\
+            "$5" == "--todate" && -n "$2" && -n "$4" && -n "$6" ]]; then
+        BRANCH="$2"
+        FROM_DATE="$4"
+        TO_DATE="$6"
+        github_modified_files_by_date ".config" "$FROM_DATE" "$TO_DATE" "$BRANCH"
+    elif [[ "$1" == "--branch" && "$3" == "--fromcommit" &&\
+            "$5" == "--tocommit" && -n "$2" && -n "$4" && -n "$6" ]]; then
+        BRANCH="$2"
+        FROM_COMMIT="$4"
+        TO_COMMIT="$6"
+        github_modified_files_by_sha ".config" "$FROM_COMMIT" "$TO_COMMIT" "$BRANCH"
+    else
+        show_list_files_help
     fi
 }
 
@@ -51,24 +64,29 @@ read_access_token() {
 
 # Function to handle setup command
 setup_command() {
-    if [[ $# -ne 3 ]]; then
-        echo "Usage: $0 setup <user name> <folder path for code> <git repo url>"
+    if [[ $# -ne 4 ]]; then
+        echo "Usage: $0 setup <user name> <path for code download> <git repo owner> <git repo name>"
         exit 1
     fi
 
     USER_NAME="$1"
     FOLDER_PATH="$2"
-    GIT_REPO_URL="$3"
+    GIT_REPO_OWNER="$3"
+    GIT_REPO_NAME="$4"
+
+    GIT_REPO_URL="https://$GITHUB_HOST/$GIT_REPO_OWNER/$GIT_REPO_NAME"
 
     # Create .netrc file
     read_access_token
-    echo "machine github.com login $USER_NAME password $ACCESS_TOKEN" > ~/.netrc
+    echo "machine $GITHUB_HOST login $USER_NAME password $ACCESS_TOKEN" > ~/.netrc
     chmod 600 ~/.netrc
     echo ".netrc file created."
 
     # Create .config file
     mkdir -p "$FOLDER_PATH"
-    echo "repo_url=$GIT_REPO_URL" > "$FOLDER_PATH/.config"
+    echo "repo_owner=$GIT_REPO_OWNER" > "$FOLDER_PATH/.config"
+    echo "repo_name=$GIT_REPO_NAME" >> "$FOLDER_PATH/.config"
+    echo "repo_url=$GIT_REPO_URL" >> "$FOLDER_PATH/.config"
     echo "branch=master" >> "$FOLDER_PATH/.config"
     echo ".config file created in $FOLDER_PATH."
 }
@@ -137,7 +155,7 @@ show_help() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  setup <user name> <folder path for code> <git repo url>"
+    echo "  setup <user name> <path for code download> <git repo owner> <git repo name>"
     echo "      Set up the environment by creating necessary configuration files."
     echo ""
     echo "  get <branch|tag|commit> <name>"
@@ -146,7 +164,7 @@ show_help() {
     echo "  list-files --fromdate <date> --todate <date>"
     echo "      List files modified between the specified dates (inclusive)."
     echo ""
-    echo "  list-files --fromcommit <commit sha> --tocommit <commit sha>"
+    echo "  list-files --branch <branch> --fromcommit <commit sha> --tocommit <commit sha>"
     echo "      List files modified between the specified commits (inclusive)."
     echo ""
     echo "  version    Show the script version and exit"

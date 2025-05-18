@@ -1,3 +1,5 @@
+GITHUB_API_HOST="api.github.com"
+
 # Helper function to parse JSON and extract filenames
 # Usage: parse_filenames <json> <jq_filter>
 parse_filenames() {
@@ -44,31 +46,65 @@ elif '$jq_filter' == '.commits[].sha':
 
 
 github_modified_files_by_date() {
-    local owner="$1"
-    local repo="$2"
-    local from_date="$3" # Format: YYYY-MM-DDTHH:MM:SSZ
-    local to_date="$4"   # Format: YYYY-MM-DDTHH:MM:SSZ
-    curl -s --netrc \
-        "https://api.github.com/repos/$owner/$repo/commits?since=$from_date&until=$to_date&per_page=100" |
+    local CFG="$1"
+    local from_date="$2" # Format: YYYY-MM-DDTHH:MM:SSZ
+    local to_date="$3"   # Format: YYYY-MM-DDTHH:MM:SSZ
+
+    if [[ -z "$from_date" || -z "$to_date" ]]; then
+        echo "function github_modified_files_by_date params missing: <config_file> <from_date> <to_date>"
+        exit 1
+    fi
+
+    if [[ ! -f "$CFG" ]]; then
+        echo "$CFG file not found in the current directory."
+        exit 1
+    fi
+    source "$CFG"
+    # .config has branch, we need to use function parameter branch
+    local branch="$4"
+
+    # extract the github token from the .netrc file
+    local github_token=$(awk -v machine="github.com" '$1 == "machine" && $2 == machine {print $6}' ~/.netrc)
+    # echo "GitHub token: $github_token"
+
+    curl -s -H "Authorization: Bearer $github_token" \
+        "https://$GITHUB_API_HOST/repos/$repo_owner/$repo_name/commits?since=$from_date&until=$to_date&sha=$branch&per_page=100" |
         parse_filenames '.[].sha' |
         while read sha; do
-            curl -s --netrc \
-                "https://api.github.com/repos/$owner/$repo/commits/$sha" |
+            # echo "Processing commit: $sha"
+            curl -s -H "Authorization: Bearer $github_token" \
+                "https://$GITHUB_API_HOST/repos/$repo_owner/$repo_name/commits/$sha" |
                 parse_filenames '.files[].filename'
         done | sort -u
 }
 
 github_modified_files_by_sha() {
-    local owner="$1"
-    local repo="$2"
-    local from_sha="$3"
-    local to_sha="$4"
-    curl -s --netrc \
-        "https://api.github.com/repos/$owner/$repo/compare/$from_sha...$to_sha" |
+    local CFG="$1"
+    local from_sha="$2"
+    local to_sha="$3"
+
+    if [[ -z "$from_sha" || -z "$to_sha" || -z "$branch" ]]; then
+        echo "function github_modified_files_by_sha params missing: <config_file> <from_sha> <to_sha> <branch>"
+        exit 1
+    fi
+
+    if [[ ! -f "$CFG" ]]; then
+        echo "$CFG file not found in the current directory."
+        exit 1
+    fi
+    source "$CFG"
+    # .config has branch, we need to use function parameter branch
+    local branch="$4"
+
+    # extract the github token from the .netrc file
+    local github_token=$(awk -v machine="github.com" '$1 == "machine" && $2 == machine {print $6}' ~/.netrc)
+    # echo "GitHub token: $github_token"
+    curl -s -H "Authorization: Bearer $github_token" \
+        "https://$GITHUB_API_HOST/repos/$repo_owner/$repo_name/compare/$from_sha...$to_sha" |
         parse_filenames '.commits[].sha' |
         while read sha; do
-            curl -s --netrc \
-                "https://api.github.com/repos/$owner/$repo/commits/$sha" |
+            curl -s -H "Authorization: Bearer $github_token" \
+                "https://$GITHUB_API_HOST/repos/$repo_owner/$repo_name/commits/$sha" |
                 parse_filenames '.files[].filename'
         done | sort -u
 }
