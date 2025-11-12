@@ -1,0 +1,3 @@
+# requirements.txt for this project
+# Only external runtime dependency used in the provided code:
+pandas>=1.5.3
