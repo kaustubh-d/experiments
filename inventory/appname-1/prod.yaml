@@ -1,18 +1,14 @@
+common:
+  ssh_port: 2222
+  ssh_key_path: /home/ubuntu/.ssh/id_rsa
+  start_script: /opt/app/start.sh
+  stop_script: /opt/app/stop.sh
+  health_check_script: /opt/app/health.sh
+
 hosts:
-  - hostname: host1.example.com
+  - hostname: prod-host1.example.com
     ip_address: 192.0.2.10
     username: ubuntu
-    ssh_port: 22
-    ssh_key_path: /home/ubuntu/.ssh/id_rsa
-    start_script: /opt/app/start.sh
-    stop_script: /opt/app/stop.sh
-    health_check_script: /opt/app/health.sh
-
-  - hostname: db1.example.com
+  - hostname: prod-db1.example.com
     ip_address: 192.0.2.11
     username: ec2-user
-    ssh_port: 2222
-    ssh_key_path: /home/ec2-user/.ssh/prod.pem
-    start_script: /srv/db/start-db.sh
-    stop_script: /srv/db/stop-db.sh
-    health_check_script: /srv/db/health-check.sh
