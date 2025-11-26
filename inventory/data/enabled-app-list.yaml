@@ -1,6 +1,6 @@
 appname-1:
-  owner:
+  users:
     - 12345
 appname-2:
-  owner:
+  users:
     - 67890

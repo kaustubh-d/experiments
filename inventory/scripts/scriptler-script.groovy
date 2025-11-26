@@ -2,7 +2,7 @@ import org.yaml.snakeyaml.Yaml
 
 try {
     // ---------- SAFE REST CALL ----------
-    def url = new URL("https://raw.githubusercontent.com/kaustubh-d/experiments/refs/heads/app-inventory/inventory/enabled-app-list.yaml")
+    def url = new URL("https://raw.githubusercontent.com/kaustubh-d/experiments/refs/heads/app-inventory/inventory/data/enabled-app-list.yaml")
     //def conn = url.openConnection()
     //conn.setRequestMethod("GET")
     //conn.connect()
