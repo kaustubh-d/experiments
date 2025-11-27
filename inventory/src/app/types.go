@@ -1,4 +1,4 @@
-package main
+package app
 
 type EnabledAppEntry struct {
 	Users []string `yaml:"users" json:"users"`

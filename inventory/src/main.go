@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	// Import app package to use its types and handlers
+	"github.com/kaustubh-d/experiments/inventory/app"
 	"github.com/labstack/echo/v4"
 )
 
@@ -16,7 +18,7 @@ func main() {
 		dataDir = filepath.Join("..", "data")
 	}
 
-	ds := NewDataStore(dataDir)
+	ds := app.NewDataStore(dataDir)
 
 	e := echo.New()
 
@@ -24,14 +26,14 @@ func main() {
 	e.GET("/inventory/apps", func(c echo.Context) error {
 		log.Println("Called /inventory/apps.")
 		c.Set("ds", ds)
-		return getEnabledApps(c)
+		return app.GetEnabledApps(c)
 	})
 
 	// GET /inventory/apps/:app -> list envs (files in data/<app>/)
 	e.GET("/inventory/apps/:app", func(c echo.Context) error {
 		log.Printf("Called /inventory/apps/%s.\n", c.Param("app"))
 		c.Set("ds", ds)
-		return getAppEnvs(c)
+		return app.GetAppEnvs(c)
 	})
 
 	// GET /inventory/apps/:app/:env -> read and return data/<app>/<env>.yaml
@@ -39,7 +41,7 @@ func main() {
 		log.Printf("Called /inventory/apps/%s/%s.\n",
 			c.Param("app"), c.Param("env"))
 		c.Set("ds", ds)
-		return getAppEnvDetails(c)
+		return app.GetAppEnvDetails(c)
 	})
 
 	e.Logger.Fatal(e.Start(":9080"))

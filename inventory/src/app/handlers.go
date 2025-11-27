@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"log"
@@ -9,7 +9,7 @@ import (
 )
 
 // GET /inventory/apps -> return enabled-app-list.yaml contents
-func getEnabledApps(c echo.Context) error {
+func GetEnabledApps(c echo.Context) error {
 	ds := c.Get("ds").(*DataStore)
 
 	apps, err := ds.loadEnabledApps()
@@ -25,7 +25,7 @@ func getEnabledApps(c echo.Context) error {
 }
 
 // GET /inventory/apps/:app -> list envs (files in data/<app>/)
-func getAppEnvs(c echo.Context) error {
+func GetAppEnvs(c echo.Context) error {
 	ds := c.Get("ds").(*DataStore)
 
 	app := c.Param("app")
@@ -48,7 +48,7 @@ func getAppEnvs(c echo.Context) error {
 }
 
 // GET /inventory/apps/:app/:env -> read and return data/<app>/<env>.yaml
-func getAppEnvDetails(c echo.Context) error {
+func GetAppEnvDetails(c echo.Context) error {
 	ds := c.Get("ds").(*DataStore)
 
 	app := c.Param("app")
