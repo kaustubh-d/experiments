@@ -9,7 +9,27 @@ def getAppIpList(String appName, envName, loggedInUser) {
 
     def url = new URL(url_path)
 
-    def jsonText = url.getText([connectTimeout: 5000, readTimeout: 10000])
+    def connection = url.openConnection() as HttpURLConnection
+    connection.connectTimeout = 5000
+    connection.readTimeout = 10000
+    def authToken = System.getProperty('AUTH_TOKEN')
+    if (authToken) {
+      connection.setRequestProperty('Authorization', "Bearer ${authToken}")
+    }
+    // Ignore redirects — fail fast if a redirect is returned
+    connection.instanceFollowRedirects = false
+    connection.requestMethod = 'GET'
+    connection.connect()
+    def responseCode = connection.responseCode
+    def jsonText
+    if (responseCode >= 200 && responseCode < 300) {
+      jsonText = connection.inputStream.text
+    } else if (responseCode >= 300 && responseCode < 400) {
+      throw new Exception("Received redirect (HTTP ${responseCode}); not following redirects")
+    } else {
+      def errBody = connection.errorStream ? connection.errorStream.text : ''
+      throw new Exception("HTTP ${responseCode} error: ${errBody ?: 'no body'}")
+    }
 
     // Convert Json to groovy object
     def jsonSlurper = new groovy.json.JsonSlurper()
