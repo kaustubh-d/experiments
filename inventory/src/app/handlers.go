@@ -50,6 +50,7 @@ func GetAppEnvs(c echo.Context) error {
 // GET /inventory/apps/:app/:env -> read and return data/<app>/<env>.yaml
 func GetAppEnvDetails(c echo.Context) error {
 	ds := c.Get("ds").(*DataStore)
+	response := AppEnvDataResponse{}
 
 	app := c.Param("app")
 	env := c.Param("env")
@@ -63,5 +64,17 @@ func GetAppEnvDetails(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, data)
+	response.AppEnvData = data
+
+	// Add access control list here.
+	users, err := ds.GetUserList(app)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError,
+			map[string]string{"error": err.Error()})
+	}
+	if len(users) > 0 {
+		response.Access = users
+	}
+
+	return c.JSON(http.StatusOK, response)
 }

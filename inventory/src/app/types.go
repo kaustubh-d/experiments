@@ -29,3 +29,8 @@ type AppEnvData struct {
 type AppEnvListResponse struct {
 	Environments []EnvNameType `json:"environments"`
 }
+
+type AppEnvDataResponse struct {
+	AppEnvData *AppEnvData
+	Access     []string `json:"access,omitempty"`
+}

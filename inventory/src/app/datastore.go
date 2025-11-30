@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -176,4 +177,19 @@ func (ds *DataStore) listEnvs(app string) ([]EnvNameType, error) {
 	log.Println("Caching env list for app:", appName)
 	ds.envListCache[appName] = envs
 	return envs, nil
+}
+
+func (ds *DataStore) GetUserList(appName string) ([]string, error) {
+
+	// Add access control list here.
+	apps, err := ds.loadEnabledApps()
+	if err != nil && os.IsNotExist(err) {
+		return nil, fmt.Errorf("Cache load failed. app name: %s", appName)
+	}
+
+	users, ok := apps[appName]
+	if !ok {
+		return nil, fmt.Errorf("%s not found", appName)
+	}
+	return users.Users, nil
 }
