@@ -1,3 +1,5 @@
+@Library('custom-helpers') _
+
 pipeline {
     agent any
 
@@ -52,9 +54,9 @@ pipeline {
             steps {
               script {
                 def selectedIpList = []
-                def selectedHostIpList = csvStrToList(params.selected_hostips)
+                def selectedHostIpList = stringHelpers.csvStrToList(params.selected_hostips)
                 selectedHostIpList.each { ip ->
-                    def extractedIp = ipFromHostIp(ip)
+                    def extractedIp = stringHelpers.ipFromHostIp(ip)
                     selectedIpList.add(extractedIp)
                 }
                 echo "Selected IPs: ${selectedIpList}"
