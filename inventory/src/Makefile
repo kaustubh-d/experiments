@@ -6,7 +6,7 @@ DIST_DIR := dist
 PROJECT := inventory-app
 VERSION_FILE ?= VERSION
 
-VERSION ?= $(shell if [ -f "$(VERSION_FILE)" ]; then cat "$(VERSION_FILE)"; else git describe --tags --always 2>/dev/null || printf 'v0.0.0'; fi)
+VERSION ?= $(shell if [ -f "$(VERSION_FILE)" ]; then cat "$(VERSION_FILE)"; else git describe --abbrev=0 --tags 2>/dev/null || printf 'v0.0.0'; fi)
 BINARY := $(BIN_DIR)/$(PROJECT)
 INSTALL_DIR ?= install-dir
 
@@ -39,7 +39,7 @@ $(BINARY): main.go
 install: build
 	@./scripts/install.sh --build-dir "$(BUILD_DIR)" --config-dir "$(CONFIG_DIR)" --install-dir "$(INSTALL_DIR)"
 
-package: build
+package: install
 	@./scripts/package.sh --install-src-dir "$(INSTALL_DIR)" --dist-dir "$(DIST_DIR)" --version "$(VERSION)" --app-name "$(PROJECT)"
 
 clean:
