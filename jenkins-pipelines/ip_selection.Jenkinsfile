@@ -4,20 +4,20 @@ pipeline {
     parameters {
         hidden(defaultValue: 'host1:10.0.0.1,host2:10.0.0.2,host3:10.0.0.3,host4:10.0.0.4', name: 'prod_ip_list')
 
-        booleanParam(description: 'Select/Unselect all', name: 'select_all_ips')
+        booleanParam(description: 'Select/Unselect all', name: 'select_all_ips_flag', defaultValue: false)
 
         // Dynamic choice rendered in Jenkins UI using Groovy script
         reactiveChoice(
-            name: 'selected_ips',
+            name: 'selected_hostips',
             choiceType: 'PT_CHECKBOX',
             filterable: true,
-            referencedParameters: 'prod_ip_list,select_all_ips',
+            referencedParameters: 'prod_ip_list,select_all_ips_flag', defaultValue: false,
             // ... other settings ...
             script: [
                 $class: 'GroovyScript',
                 script: [
                     script: '''
-                        def strToList(str) {
+                        def csvStrToList(str) {
                             if (!str) {
                                 return []
                             }
@@ -29,11 +29,11 @@ pipeline {
                             }
                         }
                         assertNotEmpty("prod_ip_list", prod_ip_list)
-                        def allIps = strToList(prod_ip_list)
+                        def allIps = csvStrToList(prod_ip_list)
 
                         def selectedIpList = []
                         def suffix = ""
-                        if (select_all_ips) {
+                        if (select_all_ips_flag) {
                             suffix = ":selected"
                         }
                         allIps.each { ip ->
@@ -51,25 +51,15 @@ pipeline {
         stage('Show Selected') {
             steps {
               script {
-                def ipFromHostIp = { hostIp ->
-                    if (!hostIp) {
-                        return null
-                    }
-                    def parts = hostIp.split(':')
-                    if (parts.length == 2) {
-                        return parts[1].trim()
-                    }
-                    return null
-                }
                 def selectedIpList = []
-                def selectedHostIpList = (params.selected_ips ?: '').split(',').collect { it.trim() }.findAll { it }
+                def selectedHostIpList = csvStrToList(params.selected_hostips)
                 selectedHostIpList.each { ip ->
                     def extractedIp = ipFromHostIp(ip)
                     selectedIpList.add(extractedIp)
                 }
-                echo "selectedIpList: ${selectedIpList.findAll{ it }.join(', ')}"
-                echo "select_all_ips: ${params.select_all_ips}"
-                echo "selected_ips: ${params.selected_ips}"
+                echo "Selected IPs: ${selectedIpList}"
+                echo "select_all_ips_flag: ${params.select_all_ips_flag}"
+                echo "selected_hostips: ${params.selected_hostips}"
             }
           }
         }
