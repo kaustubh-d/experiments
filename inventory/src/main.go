@@ -24,7 +24,7 @@ func main() {
 
 	// Simple bearer token auth middleware.
 	// Expects AUTH_TOKEN env var to be set.
-	e.Use(app.ApiAuth)
+	//e.Use(app.ApiAuth)
 
 	// GET /inventory/apps -> return enabled-app-list.yaml contents
 	e.GET("/inventory/apps", func(c echo.Context) error {

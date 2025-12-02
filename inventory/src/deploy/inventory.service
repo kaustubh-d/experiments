@@ -1,0 +1,19 @@
+[Unit]
+Description=Inventory REST API service
+After=network.target
+
+[Service]
+Type=simple
+User=myappuser
+Group=myappgroup
+ExecStart=/opt/devops/go/bin/inventory
+WorkingDirectory=/home/myappuser
+Environment="PORT=9080"
+Restart=on-failure
+RestartSec=5s
+PrivateTmp=yes
+NoNewPrivileges=yes
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
