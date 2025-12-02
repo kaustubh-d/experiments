@@ -1,4 +1,4 @@
-@Library('custom-helpers') _
+@Library('jenkins-helpers') _
 
 pipeline {
     agent any
@@ -6,27 +6,27 @@ pipeline {
     parameters {
         hidden(defaultValue: 'host1:10.0.0.1,host2:10.0.0.2,host3:10.0.0.3,host4:10.0.0.4', name: 'prod_ip_list')
 
-        booleanParam(description: 'Select/Unselect all', name: 'select_all_ips_flag', defaultValue: false)
+        booleanParam(description: 'Select/Unselect all', name: 'select_all_ips_flag')
 
         // Dynamic choice rendered in Jenkins UI using Groovy script
         reactiveChoice(
             name: 'selected_hostips',
             choiceType: 'PT_CHECKBOX',
             filterable: true,
-            referencedParameters: 'prod_ip_list,select_all_ips_flag', defaultValue: false,
+            referencedParameters: 'prod_ip_list,select_all_ips_flag',
             // ... other settings ...
             script: [
                 $class: 'GroovyScript',
                 script: [
                     script: '''
-                        def csvStrToList(str) {
-                            if (!str) {
+                        def csvStrToList(csvString) {
+                            if (!csvString) {
                                 return []
                             }
-                            return str.split(',').collect { it.trim() }
+                            return csvString.split(',').collect { it.trim() }
                         }
-                        def assertNotEmpty(tag, str) {
-                            if (!str || str.trim().length() == 0) {
+                        def assertNotEmpty(tag, strVal) {
+                            if (!strVal || strVal.trim().length() == 0) {
                                 throw new Exception("${tag} is empty")
                             }
                         }
