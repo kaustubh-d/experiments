@@ -40,6 +40,17 @@ test:
 	@echo "Running tests..."
 	@DATA_DIR=$(shell pwd)/../data $(GO) test ./... -v
 
+test-cover:
+	@echo "Running tests..."
+	@DATA_DIR=$(shell pwd)/../data $(GO) test -cover ./... -v
+
+test-coverage-report:
+	@echo "Running tests..."
+	@DATA_DIR=$(shell pwd)/../data $(GO) test -coverprofile=coverage.out ./... -v
+	@echo "Generating coverage report..."
+	@go tool cover -html=coverage.out -o coverage.html
+	@open coverage.html
+
 install: build
 	@./scripts/install.sh --build-dir "$(BUILD_DIR)" --config-dir "$(CONFIG_DIR)" --install-dir "$(INSTALL_DIR)"
 
