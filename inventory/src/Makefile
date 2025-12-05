@@ -36,6 +36,10 @@ $(BINARY): main.go
 	$(GO) build -o $@ .
 	@chmod 0755 $@
 
+test:
+	@echo "Running tests..."
+	@DATA_DIR=$(shell pwd)/../data $(GO) test ./... -v
+
 install: build
 	@./scripts/install.sh --build-dir "$(BUILD_DIR)" --config-dir "$(CONFIG_DIR)" --install-dir "$(INSTALL_DIR)"
 
