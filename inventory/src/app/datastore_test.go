@@ -78,6 +78,59 @@ func TestListEnvs_NonExistentApp(t *testing.T) {
 	}
 }
 
+func TestLoadAppEnv_BasicAndCache(t *testing.T) {
+	data_dir := os.Getenv("DATA_DIR")
+	app := "appname-1"
+	env := "prod"
+
+	ds := NewDataStore(data_dir)
+
+	// first load should succeed
+	d1, err := ds.loadAppEnv(app, env)
+	if err != nil {
+		t.Fatalf("first loadAppEnv returned error: %v", err)
+	}
+	if d1 == nil {
+		t.Fatalf("first loadAppEnv returned nil data")
+	}
+
+	// second load from same datastore should return cached pointer
+	d2, err := ds.loadAppEnv(app, env)
+	if err != nil {
+		t.Fatalf("second loadAppEnv returned error: %v", err)
+	}
+	if d2 == nil {
+		t.Fatalf("second loadAppEnv returned nil data")
+	}
+	if d1 != d2 {
+		t.Fatalf("expected cached pointer on second load, got different pointers: %p vs %p", d1, d2)
+	}
+}
+
+func TestLoadAppEnv_NonExistentApp(t *testing.T) {
+	data_dir := os.Getenv("DATA_DIR")
+	ds := NewDataStore(data_dir)
+	_, err := ds.loadAppEnv("this-app-does-not-exist", "prod")
+	if err == nil {
+		t.Fatalf("expected error for non-existent env file, got nil")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected not-exist error, got: %v", err)
+	}
+}
+
+func TestLoadAppEnv_NonExistentEnv(t *testing.T) {
+	data_dir := os.Getenv("DATA_DIR")
+	ds := NewDataStore(data_dir)
+	_, err := ds.loadAppEnv("appname-1", "this-env-does-not-exist")
+	if err == nil {
+		t.Fatalf("expected error for non-existent env file, got nil")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected not-exist error, got: %v", err)
+	}
+}
+
 // helper: compare two slices of EnvNameType ignoring order
 func envSlicesEqualUnordered(a, b []EnvNameType) bool {
 	if len(a) != len(b) {
