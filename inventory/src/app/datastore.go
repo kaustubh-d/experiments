@@ -20,7 +20,7 @@ type DataStore struct {
 	mu sync.RWMutex
 
 	enabledAppsLoaded bool
-	enabledApps       EnabledApps
+	enabledApps       *EnabledApps
 
 	// app -> env -> data
 	appEnvCache map[AppNameType]map[EnvNameType]*AppEnvData
@@ -52,7 +52,7 @@ func NewDataStore(dataDir string) *DataStore {
 // Returns:
 //   - EnabledApps: the parsed list of enabled applications (from cache or disk).
 //   - error: non-nil if reading the file or unmarshalling YAML fails.
-func (ds *DataStore) loadEnabledApps() (EnabledApps, error) {
+func (ds *DataStore) loadEnabledApps() (*EnabledApps, error) {
 	ds.mu.RLock()
 	if ds.enabledAppsLoaded {
 		c := ds.enabledApps
@@ -76,7 +76,7 @@ func (ds *DataStore) loadEnabledApps() (EnabledApps, error) {
 	if err := yaml.Unmarshal(b, &apps); err != nil {
 		return nil, err
 	}
-	ds.enabledApps = apps
+	ds.enabledApps = &apps
 	ds.enabledAppsLoaded = true
 	return ds.enabledApps, nil
 }
@@ -187,7 +187,7 @@ func (ds *DataStore) GetUserList(appName string) ([]string, error) {
 		return nil, fmt.Errorf("Cache load failed. app name: %s", appName)
 	}
 
-	users, ok := apps[appName]
+	users, ok := (*apps)[appName]
 	if !ok {
 		return nil, fmt.Errorf("%s not found", appName)
 	}

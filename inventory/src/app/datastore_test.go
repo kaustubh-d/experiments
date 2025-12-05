@@ -131,26 +131,46 @@ func TestLoadAppEnv_NonExistentEnv(t *testing.T) {
 	}
 }
 
-// helper: compare two slices of EnvNameType ignoring order
-func envSlicesEqualUnordered(a, b []EnvNameType) bool {
-	if len(a) != len(b) {
-		return false
+func TestLoadEnabledApps_BasicAndCache(t *testing.T) {
+	data_dir := os.Getenv("DATA_DIR")
+
+	ds := NewDataStore(data_dir)
+
+	apps1, err := ds.loadEnabledApps()
+	if err != nil {
+		t.Fatalf("first loadEnabledApps returned error: %v", err)
 	}
-	m := make(map[string]int)
-	for _, v := range a {
-		m[string(v)]++
+	if apps1 == nil {
+		t.Fatalf("first loadEnabledApps returned nil")
 	}
-	for _, v := range b {
-		s := string(v)
-		if m[s] == 0 {
-			return false
-		}
-		m[s]--
+	ua, ok := (*apps1)["appname-1"]
+	if !ok {
+		t.Fatalf("expected appname-1 in enabled apps, got keys: %v", apps1)
 	}
-	for _, cnt := range m {
-		if cnt != 0 {
-			return false
-		}
+	if len(ua.Users) != 1 {
+		t.Fatalf("unexpected users for appname-1: %v", ua.Users)
 	}
-	return true
+
+	// Another load should return cached pointer
+	apps2, err := ds.loadEnabledApps()
+	if err != nil {
+		t.Fatalf("second loadEnabledApps returned error: %v", err)
+	}
+	if apps1 != apps2 {
+		t.Fatalf("expected cached pointer on second load, got different pointers: %p vs %p", apps1, apps2)
+	}
+
+}
+
+func TestLoadEnabledApps_NonExistent(t *testing.T) {
+	data_dir := os.Getenv("DATA_DIR")
+
+	ds := NewDataStore(filepath.Join(data_dir, "empty-data-store"))
+	_, err := ds.loadEnabledApps()
+	if err == nil {
+		t.Fatalf("expected error for missing enabled-app-list.yaml, got nil")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected not-exist error, got: %v", err)
+	}
 }
