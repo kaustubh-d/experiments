@@ -4,7 +4,7 @@ import urllib.request, urllib.parse, json, pandas as pd, datetime
 GITHUB_TOKEN = "xxxx"   # use personal access token
 ORG = "xxxx"               # org or username
 FROM_DATE = "2024-10-01T00:00:00Z"
-TO_DATE = "2025-12-01T00:00:00Z"
+TO_DATE = "2025-12-01T17:21:28Z"
 HEADERS = {"Authorization": f"token {GITHUB_TOKEN}",
            "Accept": "application/vnd.github+json"}
 
