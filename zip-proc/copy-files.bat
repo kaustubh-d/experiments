@@ -28,6 +28,7 @@ if not exist "!destDir!" (
 )
 
 @REM Read each file name from the list and copy it to the destination directory
+set "hasErrors=0"
 for /f "usebackq delims=" %%A in ("!listFile!") do (
   @REM Generate the full path of the source file
   set "filePath=%%A"
@@ -52,10 +53,17 @@ for /f "usebackq delims=" %%A in ("!listFile!") do (
       echo Copied: !filePath! to !destAbsDirPath!
     ) else (
       echo Warning: Failed to copy: !filePath! to !destAbsDirPath!
+      set "hasErrors=1"
     )
   ) else (
     echo Warning: File not found: !absSrcFilePath!
+    set "hasErrors=1"
   )
+)
+
+if !hasErrors! equ 1 (
+  endlocal
+  exit /b 1
 )
 
 endlocal

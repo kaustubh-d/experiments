@@ -23,36 +23,25 @@ if [[ ! -d "$destDir" ]]; then
 fi
 
 # Read each file name from the list and copy it to the destination directory
-hasError=0
+success_log=./success.log
+failure_log=./failures.log
+# --info=NAME1 for linux
+rsync -R --files-from="$listFile" --itemize --ignore-errors \
+  "$sourceDir/./" "$destDir/" > "${success_log}" 2> "${failure_log}"
 
-while IFS= read -r filePath; do
-  # Extract the file name from the file path
-  fileName=$(basename "$filePath")
-  # Extract the directory path from the file path
-  relDir=$(dirname "$filePath")
+EXIT_STATUS=$?
 
-  # Even if there are failures for single files, we copy the rest of the
-  # files and report all failures at the end. This is to ensure we get as
-  # many files copied as possible, even if some file copy had errors.
-  absSrcFilePath="$sourceDir/$filePath"
-  if [[ -f "$absSrcFilePath" ]]; then
-    # Construct the source and destination directory paths
-    srcAbsDirPath="$sourceDir/$relDir"
-    destAbsDirPath="$destDir/$relDir"
-
-    # Create destination directory if needed and copy the file
-    mkdir -p "$destAbsDirPath"
-    if cp "$absSrcFilePath" "$destAbsDirPath/$fileName"; then
-      echo "Copied: $filePath to $destAbsDirPath"
-    else
-      echo "Warning: Failed to copy: $filePath to $destAbsDirPath"
-      hasError=1
-    fi
-  else
-    echo "Warning: File not found: $absSrcFilePath"
-    hasError=1
-  fi
-done < "$listFile"
+if [ $EXIT_STATUS -eq 0 ]; then
+    echo "Successfully copied all files."
+    echo "Success log: ${success_log}" && cat "${success_log}"
+elif [ $EXIT_STATUS -eq 23 ]; then
+    echo "Warning: Some files failed to copy"
+    echo "Success log: ${success_log}" && cat "${success_log}"
+    echo "Failure log: ${failure_log}" && cat "${failure_log}"
+else
+    echo "Error: Rsync failed with code $EXIT_STATUS"
+    echo "Failure log: ${failure_log}" && cat "${failure_log}"
+fi
 
 # For any failed copy operations, exit with a non-zero status code
-exit $hasError
+exit $EXIT_STATUS
