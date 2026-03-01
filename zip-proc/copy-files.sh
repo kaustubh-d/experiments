@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Define usage string
+usage="Usage: $0 <listFile> <sourceDir> <destDir>"
+
+# Check if all required arguments are provided
+if [[ $# -lt 3 ]]; then
+  echo "$usage"
+  exit 1
+fi
+
 # File containing list of files to copy
 listFile="$1"
 # Source directory where the files are located
