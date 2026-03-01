@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Define usage string
+usage="Usage: $0 <listFile> <sourceDir> <destDir>"
+
+# Check if all required arguments are provided
+if [[ $# -lt 3 ]]; then
+  echo "$usage"
+  exit 1
+fi
+
 # File containing list of files to copy
 listFile="$1"
 # Source directory where the files are located
@@ -26,7 +35,7 @@ fi
 success_log=./success.log
 failure_log=./failures.log
 # --info=NAME1 for linux
-rsync -R --files-from="$listFile" --itemize --ignore-errors \
+rsync -R --files-from="$listFile" --itemize-changes --ignore-errors \
   "$sourceDir/./" "$destDir/" > "${success_log}" 2> "${failure_log}"
 
 EXIT_STATUS=$?
