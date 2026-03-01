@@ -1,25 +1,23 @@
 #!/bin/bash
 
 # Configuration
-LOG_FILE="${BACKUP_DIR}/backup.log"
-CHANGELOG_FILE="${BACKUP_DIR}/CHANGELOG"
 MAX_BACKUPS=5
 
 # Helper function to generate timestamp
 get_timestamp() {
-  local format="${1:-%Y%m%d_%H%M%S}"
+  local format="${1:-%d-%b-%Y T%H:%M:%S}"
   date "+$format"
 }
 
 # Logging function
 log() {
-  echo "[$(get_timestamp '%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+  echo "[$(get_timestamp)] $1" >> "$LOG_FILE"
 }
 
 # Step 1: Create new folder with timestamp
 create_backup_folder() {
   local backup_dir="$1"
-  local timestamp=$(get_timestamp)
+  local timestamp=$(get_timestamp "%d-%m-%Y-T%H-%M-%S")
   local new_folder="${backup_dir}/backup_${timestamp}"
 
   if mkdir -p "$new_folder"; then
@@ -37,13 +35,14 @@ copy_files_to_backup() {
   local source_dir="$1"
   local backup_folder="$2"
   local copy_script="$3"
+  local list_file="$4"
 
   if [ ! -f "$copy_script" ]; then
     log "ERROR: Copy script not found: $copy_script"
     return 1
   fi
 
-  if bash "$copy_script" "$source_dir" "$backup_folder"; then
+  if bash "$copy_script" "$list_file" "$source_dir" "$backup_folder"; then
     log "Successfully copied files to $backup_folder"
     return 0
   else
@@ -84,7 +83,7 @@ update_changelog() {
   local new_folder="$2"
   local deleted_folders="$3"
 
-  local timestamp=$(get_timestamp '%d-%b-%Y')
+  local timestamp=$(get_timestamp)
 
   # Log created backup
   echo "[CREATED] $timestamp - $(basename "$new_folder")" >> "$CHANGELOG_FILE"
@@ -102,9 +101,19 @@ update_changelog() {
 
 # Main execution
 main() {
-  local source_dir="${1:?Source directory required}"
-  local backup_dir="${2:?Backup directory required}"
-  local copy_script="${3:?Copy script path required}"
+  local usage="Usage: $0 <source_dir> <backup_dir> <copy_script> <list file>"
+  if [ "$#" -ne 4 ]; then
+    echo "ERROR: Invalid number of arguments."
+    echo "$usage"
+    exit 1
+  fi
+  local source_dir="${1:?$usage}"
+  local backup_dir="${2:?$usage}"
+  local copy_script="${3:?$usage}"
+  local list_file="${4:?$usage}"
+
+  LOG_FILE="${backup_dir}/backup.log"
+  CHANGELOG_FILE="${backup_dir}/CHANGELOG"
 
   log "========== Backup Process Started =========="
 
@@ -112,7 +121,7 @@ main() {
   new_folder=$(create_backup_folder "$backup_dir") || exit 1
 
   # Step 2
-  copy_files_to_backup "$source_dir" "$new_folder" "$copy_script" || exit 1
+  copy_files_to_backup "$source_dir" "$new_folder" "$copy_script" "$list_file" || exit 1
 
   # Step 3
   deleted=$(cleanup_old_backups "$backup_dir" "$MAX_BACKUPS")
